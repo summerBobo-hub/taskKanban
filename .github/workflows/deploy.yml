@@ -1,67 +1,70 @@
-name: 自动编译和部署
+name: auto build and deploy
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [master, main]
   pull_request:
-    branches: [ main, master ]
+    branches: [master, main]
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
     steps:
-    - name: 检出代码
+    - name: checkout code
       uses: actions/checkout@v4
       
-    - name: 设置Node.js环境
+    - name: setup node.js environment
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '22'
         cache: 'npm'
         
-    - name: 安装依赖
+    - name: install dependencies
       run: npm ci
       
-    - name: 编译项目
+    - name: build project
       run: npm run build
       
-    - name: 检查编译结果
+    - name: check build result
       run: |
         if [ ! -f "dist/index.html" ]; then
-          echo "编译失败：未找到dist/index.html文件"
+          echo "build failed: dist/index.html not found"
           exit 1
         fi
-        echo "编译成功！"
+        echo "build success!"
         ls -la dist/
         
-    - name: 部署到GitHub Pages
+    - name: deploy to GitHub Pages
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./dist
-        force_orphan: true
+        publish_branch: pages  
+        keep_files: false     
+        force_orphan: true    
         
-    - name: 部署预览（PR）
+    - name: deploy preview (PR)
       if: github.event_name == 'pull_request'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./dist
+        publish_branch: pages 
         destination_dir: preview/${{ github.event.number }}
         
-    - name: 部署状态通知
+    - name: deploy status notification
       if: always()
       run: |
         if [ ${{ job.status }} == 'success' ]; then
-          echo "✅ 部署成功！"
+          echo "✅ Deployment successful!"
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "📝 PR预览地址: https://${{ github.repository_owner }}.github.io/${{ github.repository }}/preview/${{ github.event.number }}/"
+            echo "📝 PR preview address: https://${{ github.repository_owner }}.github.io/${{ github.repository_name }}/preview/${{ github.event.number }}/"
           else
-            echo "🚀 生产地址: https://${{ github.repository_owner }}.github.io/${{ github.repository }}/"
+            echo "🚀 Production address: https://${{ github.repository_owner }}.github.io/${{ github.repository_name }}/"
           fi
         else
-          echo "❌ 部署失败！"
+          echo "❌ Deployment failed!"
           exit 1
         fi
