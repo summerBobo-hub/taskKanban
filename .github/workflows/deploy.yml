@@ -1,0 +1,67 @@
+name: 自动编译和部署
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置Node.js环境
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: 安装依赖
+      run: npm ci
+      
+    - name: 编译项目
+      run: npm run build
+      
+    - name: 检查编译结果
+      run: |
+        if [ ! -f "dist/index.html" ]; then
+          echo "编译失败：未找到dist/index.html文件"
+          exit 1
+        fi
+        echo "编译成功！"
+        ls -la dist/
+        
+    - name: 部署到GitHub Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
+        force_orphan: true
+        
+    - name: 部署预览（PR）
+      if: github.event_name == 'pull_request'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
+        destination_dir: preview/${{ github.event.number }}
+        
+    - name: 部署状态通知
+      if: always()
+      run: |
+        if [ ${{ job.status }} == 'success' ]; then
+          echo "✅ 部署成功！"
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "📝 PR预览地址: https://${{ github.repository_owner }}.github.io/${{ github.repository }}/preview/${{ github.event.number }}/"
+          else
+            echo "🚀 生产地址: https://${{ github.repository_owner }}.github.io/${{ github.repository }}/"
+          fi
+        else
+          echo "❌ 部署失败！"
+          exit 1
+        fi

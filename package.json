@@ -1,0 +1,20 @@
+{
+  "name": "mermaid-timeline-board",
+  "version": "1.0.0",
+  "description": "动态编译时间轴任务看板",
+  "main": "src/compiler.js",
+  "scripts": {
+    "build": "node src/compiler.js", 
+    "watch": "node src/compiler.js --watch",
+    "serve": "python3 -m http.server 8000"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "marked": "^9.1.6",
+    "front-matter": "^4.0.2"
+  },
+  "devDependencies": {},
+  "keywords": ["mermaid", "timeline", "kanban", "markdown"],
+  "author": "",
+  "license": "MIT"
+}
